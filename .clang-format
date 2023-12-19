@@ -19,7 +19,7 @@ BreakConstructorInitializers: BeforeColon
 BreakStringLiterals: 'true'
 ColumnLimit: '120'
 FixNamespaceComments: 'true'
-IndentWidth: '4'
+IndentWidth: '2'
 Language: Cpp
 MaxEmptyLinesToKeep: '1'
 PointerAlignment: Left
