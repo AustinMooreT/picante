@@ -63,6 +63,24 @@ get_graphics_queue_family_index(const vk::PhysicalDevice& physical_device) {
   }
 }
 
+vk::DeviceQueueCreateInfo
+create_logical_device_queue_info(const std::size_t queue_family_index,
+                                 const std::array<float, 1>& priorities) {
+  auto device_queue_info             = vk::DeviceQueueCreateInfo{};
+  device_queue_info.queueFamilyIndex = queue_family_index;
+  device_queue_info.queueCount       = 1;
+  device_queue_info.setQueuePriorities(priorities);
+  return device_queue_info;
+}
+
+vk::DeviceCreateInfo
+create_logical_device_info(const vk::DeviceQueueCreateInfo& queue_info) {
+  auto device_info                 = vk::DeviceCreateInfo{};
+  device_info.queueCreateInfoCount = 1;
+  device_info.pQueueCreateInfos    = &queue_info;
+  return device_info;
+}
+
 int main() {
   return 0;
 }
