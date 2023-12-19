@@ -32,7 +32,7 @@ vk::UniqueInstance create_instance() {
 std::optional<vk::PhysicalDevice>
 get_discrete_gpu(const vk::Instance& instance) {
   const auto physical_devices = instance.enumeratePhysicalDevices();
-  const auto discrete_gpu     = std::ranges::find_if(
+  const auto discrete_gpu     = std::find_if(
       std::begin(physical_devices), std::end(physical_devices),
       [](const auto& device) {
         const auto properties = device.getProperties();
