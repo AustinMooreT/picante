@@ -1,4 +1,7 @@
+#include <algorithm>
 #include <functional>
+#include <iostream>
+#include <optional>
 
 #include <vulkan/vulkan.hpp>
 
@@ -24,6 +27,25 @@ vk::UniqueInstance create_instance() {
     return instance_info;
   });
   return vk::createInstanceUnique(instance_info);
+}
+
+std::optional<vk::PhysicalDevice>
+get_discrete_gpu(const vk::Instance& instance) {
+  const auto physical_devices = instance.enumeratePhysicalDevices();
+  const auto discrete_gpu     = std::ranges::find_if(
+      std::begin(physical_devices), std::end(physical_devices),
+      [](const auto& device) {
+        const auto properties = device.getProperties();
+        return properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu;
+      });
+  if (discrete_gpu != std::end(physical_devices)) {
+    const auto properties = (*discrete_gpu).getProperties();
+    std::cout << "Found a discrete gpu: " << properties.deviceName << "\n";
+    return (*discrete_gpu);
+  } else {
+    std::cout << "No discrete gpu! Your rig sucks!\n";
+    return std::nullopt;
+  }
 }
 
 int main() {
