@@ -17,7 +17,7 @@ AlwaysBreakTemplateDeclarations: 'Yes'
 BreakBeforeBraces: Attach
 BreakConstructorInitializers: BeforeColon
 BreakStringLiterals: 'true'
-ColumnLimit: '120'
+ColumnLimit: '80'
 FixNamespaceComments: 'true'
 IndentWidth: '2'
 Language: Cpp
