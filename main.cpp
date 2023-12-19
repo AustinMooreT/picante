@@ -81,6 +81,18 @@ create_logical_device_info(const vk::DeviceQueueCreateInfo& queue_info) {
   return device_info;
 }
 
+std::optional<vk::UniqueDevice>
+create_logical_device(const vk::PhysicalDevice& physical_device) {
+  const auto priorities = std::array<float, 1>{1.0f};
+  return get_graphics_queue_family_index(physical_device)
+      .transform([&priorities, &physical_device](const auto& index) {
+        const auto device_queue_info =
+            create_logical_device_queue_info(index, priorities);
+        const auto device_info = create_logical_device_info(device_queue_info);
+        return physical_device.createDeviceUnique(device_info);
+      });
+}
+
 int main() {
   return 0;
 }
