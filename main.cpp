@@ -48,6 +48,21 @@ get_discrete_gpu(const vk::Instance& instance) {
   }
 }
 
+std::optional<std::size_t>
+get_graphics_queue_family_index(const vk::PhysicalDevice& physical_device) {
+  const auto properties   = physical_device.getQueueFamilyProperties();
+  const auto queue_family = std::find_if(
+      std::begin(properties), std::end(properties), [](const auto& property) {
+        return property.queueFlags & vk::QueueFlagBits::eGraphics;
+      });
+  if (queue_family != std::end(properties)) {
+    // return the index of the queue family
+    return std::distance(std::begin(properties), queue_family);
+  } else {
+    return std::nullopt;
+  }
+}
+
 int main() {
   return 0;
 }
