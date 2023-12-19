@@ -16,7 +16,7 @@ constexpr vk::ApplicationInfo create_application_info() {
 
 vk::UniqueInstance create_instance() {
   const auto application_info = create_application_info();
-  const auto instance_info    = std::invoke([&application_info]() {
+  const auto instance_info    = std::invoke([&application_info] {
     auto instance_info              = vk::InstanceCreateInfo{};
     instance_info.pApplicationInfo  = &application_info;
     instance_info.enabledLayerCount = 0;
