@@ -93,6 +93,12 @@ create_logical_device(const vk::PhysicalDevice& physical_device) {
       });
 }
 
+vk::Queue get_queue(const vk::PhysicalDevice& physical_device,
+                    const vk::UniqueDevice& logical_device) {
+  return logical_device.get().getQueue(
+      get_graphics_queue_family_index(physical_device).value(), 0);
+}
+
 int main() {
   return 0;
 }
