@@ -100,5 +100,13 @@ vk::Queue get_queue(const vk::PhysicalDevice& physical_device,
 }
 
 int main() {
+  const auto instance        = create_instance();
+  const auto physical_device = get_discrete_gpu(instance.get());
+  const auto logical_device  = physical_device.and_then(create_logical_device);
+  const auto queue = physical_device.and_then([&](const auto& physical_device) {
+    return logical_device.transform(
+        [&](const auto& logical_device) { return get_queue; });
+  });
+
   return 0;
 }
