@@ -8,7 +8,10 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_syswm.h>
 
+#include <wayland-client.h>
+
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_wayland.h>
 
 constexpr vk::ApplicationInfo create_application_info() {
   auto application_info               = vk::ApplicationInfo{};
@@ -125,6 +128,17 @@ get_wayland_goodies(const std::shared_ptr<SDL_Window>& window) {
       });
   return info.transform([window](const auto& info) {
     return std::make_pair(info.info.wl.display, info.info.wl.surface);
+  });
+}
+
+std::optional<vk::WaylandSurfaceCreateInfoKHR>
+create_wayland_surface_info(const std::shared_ptr<SDL_Window>& window) {
+  return get_wayland_goodies(window).transform([](auto goodies) {
+    auto [display, surface]     = goodies;
+    auto surface_create_info    = vk::WaylandSurfaceCreateInfoKHR{};
+    surface_create_info.display = display;
+    surface_create_info.surface = surface;
+    return surface_create_info;
   });
 }
 
