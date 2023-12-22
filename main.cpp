@@ -4,8 +4,10 @@
 #include <memory>
 #include <optional>
 
+#define VK_USE_PLATFORM_WAYLAND_KHR
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_syswm.h>
+
 #include <vulkan/vulkan.hpp>
 
 constexpr vk::ApplicationInfo create_application_info() {
@@ -108,6 +110,22 @@ std::shared_ptr<SDL_Window> create_window() {
   return std::shared_ptr<SDL_Window>{window, [](const auto* window_ptr) {
                                        SDL_DestroyWindow(window_ptr);
                                      }};
+}
+
+std::optional<std::pair<wl_display*, wl_surface*>>
+get_wayland_goodies(const std::shared_ptr<SDL_Window>& window) {
+  const auto info =
+      std::invoke([&window] -> decltype(std::optional<SDL_SysWMinfo>()) {
+        SDL_SysWMinfo info;
+        if (SDL_GetWindowWMInfo(window.get(), &info)) {
+          return info;
+        } else {
+          return std::nullopt;
+        }
+      });
+  return info.transform([window](const auto& info) {
+    return std::make_pair(info.info.wl.display, info.info.wl.surface);
+  });
 }
 
 int main() {
