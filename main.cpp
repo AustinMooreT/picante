@@ -1,8 +1,11 @@
 #include <algorithm>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <optional>
 
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_syswm.h>
 #include <vulkan/vulkan.hpp>
 
 constexpr vk::ApplicationInfo create_application_info() {
@@ -97,6 +100,14 @@ vk::Queue get_queue(const vk::PhysicalDevice& physical_device,
                     const vk::UniqueDevice& logical_device) {
   return logical_device.get().getQueue(
       get_graphics_queue_family_index(physical_device).value(), 0);
+}
+
+std::shared_ptr<SDL_Window> create_window() {
+  const auto window = SDL_CreateWindow("picante", 0, 0, 1024, 1024,
+                                       SDL_WINDOW_SHOWN & SDL_WINDOW_VULKAN);
+  return std::shared_ptr<SDL_Window>{window, [](const auto* window_ptr) {
+                                       SDL_DestroyWindow(window_ptr);
+                                     }};
 }
 
 int main() {
