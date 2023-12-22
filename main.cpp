@@ -4,9 +4,8 @@
 #include <memory>
 #include <optional>
 
-#define VK_USE_PLATFORM_WAYLAND_KHR
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_syswm.h>
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
 
 #include <wayland-client.h>
 
@@ -107,39 +106,24 @@ vk::Queue get_queue(const vk::PhysicalDevice& physical_device,
       get_graphics_queue_family_index(physical_device).value(), 0);
 }
 
-std::shared_ptr<SDL_Window> create_window() {
-  const auto window = SDL_CreateWindow("picante", 0, 0, 1024, 1024,
-                                       SDL_WINDOW_SHOWN & SDL_WINDOW_VULKAN);
-  return std::shared_ptr<SDL_Window>{window, [](const auto* window_ptr) {
-                                       SDL_DestroyWindow(window_ptr);
+std::shared_ptr<GLFWwindow> create_window() {
+  const auto window = glfwCreateWindow(1024, 1024, "picante", nullptr, nullptr);
+  return std::shared_ptr<GLFWwindow>{window, [](const auto* window_ptr) {
+                                       glfwDestroyWindow(window_ptr);
                                      }};
 }
 
-std::optional<std::pair<wl_display*, wl_surface*>>
-get_wayland_goodies(const std::shared_ptr<SDL_Window>& window) {
-  const auto info =
-      std::invoke([&window] -> decltype(std::optional<SDL_SysWMinfo>()) {
-        SDL_SysWMinfo info;
-        if (SDL_GetWindowWMInfo(window.get(), &info)) {
-          return info;
-        } else {
-          return std::nullopt;
-        }
-      });
-  return info.transform([window](const auto& info) {
-    return std::make_pair(info.info.wl.display, info.info.wl.surface);
-  });
-}
-
-std::optional<vk::WaylandSurfaceCreateInfoKHR>
-create_wayland_surface_info(const std::shared_ptr<SDL_Window>& window) {
-  return get_wayland_goodies(window).transform([](auto goodies) {
-    auto [display, surface]     = goodies;
-    auto surface_create_info    = vk::WaylandSurfaceCreateInfoKHR{};
-    surface_create_info.display = display;
-    surface_create_info.surface = surface;
-    return surface_create_info;
-  });
+std::optional<vk::SurfaceKHR>
+create_wayland_surface(const vk::Instance& instance,
+                       const std::shared_ptr<GLFWwindow>& window) {
+  VkSurfaceKHR surface{};
+  if (glfwCreateWindowSurface(static_cast<VkInstance>(instance), window.get(),
+                              nullptr,
+                              &surface) == VK_ERROR_INITIALIZATION_FAILED) {
+    return std::nullopt;
+  } else {
+    return vk::SurfaceKHR{surface};
+  }
 }
 
 int main() {
