@@ -121,6 +121,7 @@ create_surface(const vk::Instance& instance,
   if (glfwCreateWindowSurface(static_cast<VkInstance>(instance), window.get(),
                               nullptr,
                               &surface) == VK_ERROR_INITIALIZATION_FAILED) {
+    std::cout << "Uh oh! Failed to create a surface!\n";
     return std::nullopt;
   } else {
     return vk::SurfaceKHR{surface};
