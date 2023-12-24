@@ -115,8 +115,8 @@ std::shared_ptr<GLFWwindow> create_window() {
 }
 
 std::optional<vk::SurfaceKHR>
-create_wayland_surface(const vk::Instance& instance,
-                       const std::shared_ptr<GLFWwindow>& window) {
+create_surface(const vk::Instance& instance,
+               const std::shared_ptr<GLFWwindow>& window) {
   VkSurfaceKHR surface{};
   if (glfwCreateWindowSurface(static_cast<VkInstance>(instance), window.get(),
                               nullptr,
