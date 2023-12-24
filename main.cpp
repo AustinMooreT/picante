@@ -105,6 +105,9 @@ vk::Queue get_queue(const vk::PhysicalDevice& physical_device,
 }
 
 std::shared_ptr<GLFWwindow> create_window() {
+  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);  // No need for opengl context
+  glfwWindowHint(GLFW_RESIZABLE,
+                 GLFW_FALSE);  // No window resizing cause I'm lazy
   const auto window = glfwCreateWindow(1024, 1024, "picante", nullptr, nullptr);
   return std::shared_ptr<GLFWwindow>{window, [](const auto* window_ptr) {
                                        glfwDestroyWindow(window_ptr);
