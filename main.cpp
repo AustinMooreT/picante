@@ -7,10 +7,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#include <wayland-client.h>
-
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_wayland.h>
 
 constexpr vk::ApplicationInfo create_application_info() {
   auto application_info               = vk::ApplicationInfo{};
