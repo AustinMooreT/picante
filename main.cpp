@@ -109,7 +109,7 @@ std::shared_ptr<GLFWwindow> create_window() {
   glfwWindowHint(GLFW_RESIZABLE,
                  GLFW_FALSE);  // No window resizing cause I'm lazy
   const auto window = glfwCreateWindow(1024, 1024, "picante", nullptr, nullptr);
-  return std::shared_ptr<GLFWwindow>{window, [](const auto* window_ptr) {
+  return std::shared_ptr<GLFWwindow>{window, [](auto* window_ptr) {
                                        glfwDestroyWindow(window_ptr);
                                      }};
 }
