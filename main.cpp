@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 
+#define VK_USE_PLATFORM_WAYLAND_KHR
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
