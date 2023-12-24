@@ -26,9 +26,9 @@ vk::UniqueInstance create_instance() {
     instance_info.pApplicationInfo  = &application_info;
     instance_info.enabledLayerCount = 0;
     // TODO I think I need certain layers for present and stuff
-    instance_info.ppEnabledLayerNames     = nullptr;
-    instance_info.enabledExtensionCount   = 0;
-    instance_info.ppEnabledExtensionNames = nullptr;
+    instance_info.ppEnabledLayerNames = nullptr;
+    instance_info.ppEnabledExtensionNames =
+        glfwGetRequiredInstanceExtensions(&instance_info.enabledExtensionCount);
     return instance_info;
   });
   return vk::createInstanceUnique(instance_info);
