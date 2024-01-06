@@ -28,5 +28,11 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(picante main.cpp)
+compile_shader(picante
+  ENV vulkan1.3
+  FORMAT bin
+  SOURCES
+    picante.vert
+    picante.frag)
 
 target_link_libraries(picante Vulkan::Vulkan glfw)
