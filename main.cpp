@@ -152,6 +152,25 @@ VkSwapchainKHR create_swapchain(const vk::SurfaceKHR& surface,
   return logical_device.createSwapchainKHR(creation_info);
 }
 
+std::vector<vk::ImageView>
+create_image_views(const vk::Device& logical_device,
+                   const std::vector<vk::Image> images) {
+
+  auto image_views = std::vector<vk::ImageView>{images.size()};
+  auto image_view_info =
+      vk::ImageViewCreateInfo{{},
+                              {},
+                              vk::ImageViewType::e2D,
+                              vk::Format::eB8G8R8A8Srgb,
+                              {},
+                              {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}};
+  for (const auto& image : images) {
+    image_view_info.image = image;
+    image_views.push_back(logical_device.createImageView(image_view_info));
+  }
+  return image_views;
+}
+
 int main() {
   glfwInit();
 
