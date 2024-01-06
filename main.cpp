@@ -153,6 +153,9 @@ VkSwapchainKHR create_swapchain(const vk::SurfaceKHR& surface,
 }
 
 int main() {
+  glfwInit();
+
+  // device and queue creation
   const auto instance        = create_instance();
   const auto physical_device = get_discrete_gpu(instance.get());
   const auto logical_device  = physical_device.and_then(create_logical_device);
