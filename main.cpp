@@ -131,6 +131,27 @@ create_surface(const vk::Instance& instance,
   }
 }
 
+VkSwapchainKHR create_swapchain(const vk::SurfaceKHR& surface,
+                                const vk::PhysicalDevice& physical_device,
+                                const vk::Device& logical_device) {
+  auto creation_info    = vk::SwapchainCreateInfoKHR{};
+  creation_info.surface = surface;
+  // make some assumpitons about what's available cause I'm lazy
+  creation_info.minImageCount   = 2;
+  creation_info.imageColorSpace = vk::ColorSpaceKHR::eVkColorspaceSrgbNonlinear;
+  creation_info.imageFormat     = vk::Format::eB8G8R8A8Srgb;
+  creation_info.imageExtent     = VkExtent2D{1024, 1024};
+  creation_info.imageArrayLayers      = 1;
+  creation_info.compositeAlpha        = vk::CompositeAlphaFlagBitsKHR::eOpaque;
+  creation_info.clipped               = true;
+  creation_info.presentMode           = vk::PresentModeKHR::eMailbox;
+  creation_info.queueFamilyIndexCount = 1;
+  static auto index = std::vector<uint32_t>{static_cast<uint32_t>(
+      get_graphics_queue_family_index(physical_device).value())};
+  creation_info.pQueueFamilyIndices = index.data();
+  return logical_device.createSwapchainKHR(creation_info);
+}
+
 int main() {
   const auto instance        = create_instance();
   const auto physical_device = get_discrete_gpu(instance.get());
