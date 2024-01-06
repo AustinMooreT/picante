@@ -214,9 +214,8 @@ int main() {
     return logical_device.transform(
         [&](const auto& logical_device) { return get_queue; });
   });
-  const auto window  = create_window();
-  const auto surface = create_surface(instance.get(), window);
-
+  const auto window    = create_window();
+  const auto surface   = create_surface(instance.get(), window);
   const auto swapchain = create_swapchain(
       surface.value(), physical_device.value(), logical_device.value().get());
   const auto images =
