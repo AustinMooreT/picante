@@ -187,5 +187,12 @@ int main() {
     return image_views;
   });
 
+  glfwShowWindow(window.get());
+  while (!glfwWindowShouldClose(window.get())) {
+    // main loop do stuff
+    glfwPollEvents();
+  }
+
+  glfwTerminate();
   return 0;
 }
