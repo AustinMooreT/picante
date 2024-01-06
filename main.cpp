@@ -1,4 +1,6 @@
 #include <algorithm>
+#include <filesystem>
+#include <fstream>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -150,6 +152,23 @@ VkSwapchainKHR create_swapchain(const vk::SurfaceKHR& surface,
       get_graphics_queue_family_index(physical_device).value())};
   creation_info.pQueueFamilyIndices = index.data();
   return logical_device.createSwapchainKHR(creation_info);
+}
+
+std::optional<std::vector<char>>
+load_shader_data(const std::filesystem::path& path_to_shader) {
+  if (!std::filesystem::exists(path_to_shader)) {
+    return std::nullopt;
+  }
+  std::ifstream file(path_to_shader, std::ios::ate | std::ios::binary);
+  if (!file.is_open()) {
+    return std::nullopt;
+  }
+  const auto file_size = file.tellg();
+  auto file_data       = std::vector<char>{};
+  file_data.resize(file_size);
+  file.seekg(0);
+  file.read(file_data.data(), file_size);
+  return file_data;
 }
 
 std::vector<vk::ImageView>
