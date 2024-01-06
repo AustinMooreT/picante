@@ -171,6 +171,19 @@ load_shader_data(const std::filesystem::path& path_to_shader) {
   return file_data;
 }
 
+std::optional<vk::ShaderModule>
+load_shader_module(const vk::Device& logical_device,
+                   const std::filesystem::path& path_to_shader) {
+  return load_shader_data(path_to_shader)
+      .transform([&logical_device](const auto& shader_data) {
+        auto creation_info     = vk::ShaderModuleCreateInfo{};
+        creation_info.codeSize = shader_data.size();
+        creation_info.pCode =
+            reinterpret_cast<const uint32_t*>(shader_data.data());
+        return logical_device.createShaderModule(creation_info);
+      });
+}
+
 std::vector<vk::ImageView>
 create_image_views(const vk::Device& logical_device,
                    const std::vector<vk::Image> images) {
