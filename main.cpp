@@ -160,6 +160,29 @@ int main() {
     return logical_device.transform(
         [&](const auto& logical_device) { return get_queue; });
   });
+  const auto window  = create_window();
+  const auto surface = create_surface(instance.get(), window);
+
+  const auto swapchain = create_swapchain(
+      surface.value(), physical_device.value(), logical_device.value().get());
+  const auto images =
+      logical_device.value().get().getSwapchainImagesKHR(swapchain);
+  const auto image_views = std::invoke([&images, &logical_device]() {
+    auto image_views = std::vector<vk::ImageView>{images.size()};
+    auto image_view_info =
+        vk::ImageViewCreateInfo{{},
+                                {},
+                                vk::ImageViewType::e2D,
+                                vk::Format::eB8G8R8A8Srgb,
+                                {},
+                                {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}};
+    for (const auto& image : images) {
+      image_view_info.image = image;
+      image_views.push_back(
+          logical_device.value().get().createImageView(image_view_info));
+    }
+    return image_views;
+  });
 
   return 0;
 }
