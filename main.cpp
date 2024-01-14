@@ -197,17 +197,25 @@ create_image_views(const vk::Device& logical_device,
                    const std::vector<vk::Image> images) {
 
   auto image_views = std::vector<vk::ImageView>{images.size()};
-  auto image_view_info =
-      vk::ImageViewCreateInfo{{},
-                              {},
-                              vk::ImageViewType::e2D,
-                              vk::Format::eB8G8R8A8Srgb,
-                              {},
-                              {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}};
-  for (const auto& image : images) {
-    image_view_info.image = image;
-    image_views.push_back(logical_device.createImageView(image_view_info));
-  }
+  std::ranges::transform(
+      images, image_views.begin(),
+      [&logical_device](const vk::Image& image) -> vk::ImageView {
+        vk::ImageViewCreateInfo imageInfo;
+        imageInfo.image    = image;
+        imageInfo.viewType = vk::ImageViewType::e2D;
+        imageInfo.format =
+            vk::Format::eB8G8R8A8Srgb;  // Blindly assume image format
+        imageInfo.components.r                = vk::ComponentSwizzle::eIdentity;
+        imageInfo.components.g                = vk::ComponentSwizzle::eIdentity;
+        imageInfo.components.b                = vk::ComponentSwizzle::eIdentity;
+        imageInfo.components.a                = vk::ComponentSwizzle::eIdentity;
+        imageInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+        imageInfo.subresourceRange.baseMipLevel   = 0;
+        imageInfo.subresourceRange.levelCount     = 1;
+        imageInfo.subresourceRange.baseArrayLayer = 0;
+        imageInfo.subresourceRange.layerCount     = 1;
+        return logical_device.createImageView(imageInfo);
+      });
   return image_views;
 }
 
