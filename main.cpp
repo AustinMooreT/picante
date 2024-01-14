@@ -145,19 +145,30 @@ create_surface(const vk::Instance& instance,
 VkSwapchainKHR create_swapchain(const vk::SurfaceKHR& surface,
                                 const vk::PhysicalDevice& physical_device,
                                 const vk::Device& logical_device) {
+  const auto surface_capabilities =
+      physical_device.getSurfaceCapabilitiesKHR(surface);
   auto creation_info    = vk::SwapchainCreateInfoKHR{};
   creation_info.surface = surface;
   // make some assumpitons about what's available cause I'm lazy
-  creation_info.minImageCount   = 2;
-  creation_info.imageColorSpace = vk::ColorSpaceKHR::eVkColorspaceSrgbNonlinear;
-  creation_info.imageFormat     = vk::Format::eB8G8R8A8Srgb;
-  creation_info.imageExtent     = VkExtent2D{1024, 1024};
-  creation_info.imageArrayLayers      = 1;
-  creation_info.compositeAlpha        = vk::CompositeAlphaFlagBitsKHR::eOpaque;
-  creation_info.clipped               = true;
-  creation_info.presentMode           = vk::PresentModeKHR::eMailbox;
-  creation_info.queueFamilyIndexCount = 1;
-  static auto index = std::vector<uint32_t>{static_cast<uint32_t>(
+  creation_info.minImageCount = surface_capabilities.minImageCount + 1;
+  creation_info.imageFormat =
+      vk::Format::eB8G8R8A8Srgb;  // blindly assume image format
+  creation_info.imageColorSpace =
+      vk::ColorSpaceKHR::eSrgbNonlinear;  // blindly assume color space
+  creation_info.presentMode =
+      vk::PresentModeKHR::eMailbox;  // blindly assume present mode
+  creation_info.imageArrayLayers =
+      1;  // Only not one when developing stereoscopic 3D app.
+  creation_info.imageExtent      = vk::Extent2D{1024, 1024};
+  creation_info.imageUsage       = vk::ImageUsageFlagBits::eColorAttachment;
+  creation_info.imageSharingMode = vk::SharingMode::eExclusive;
+  creation_info.preTransform     = surface_capabilities.currentTransform;
+  creation_info.compositeAlpha   = vk::CompositeAlphaFlagBitsKHR::eOpaque;
+  creation_info.presentMode =
+      vk::PresentModeKHR::eMailbox;  // blindly assuming mailbox presentation
+                                     // mode
+  creation_info.clipped = VK_TRUE;
+  static auto index     = std::vector<uint32_t>{static_cast<uint32_t>(
       get_graphics_queue_family_index(physical_device).value())};
   creation_info.pQueueFamilyIndices = index.data();
   return logical_device.createSwapchainKHR(creation_info);
