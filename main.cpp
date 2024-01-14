@@ -231,6 +231,17 @@ create_image_views(const vk::Device& logical_device,
   return image_views;
 }
 
+vk::PipelineShaderStageCreateInfo
+create_shader_pipeline_info(const vk::ShaderModule& module,
+                            const vk::ShaderStageFlagBits shader_stage,
+                            const std::string& name) {
+  auto shader_pipeline_info   = vk::PipelineShaderStageCreateInfo{};
+  shader_pipeline_info.module = module;
+  shader_pipeline_info.stage  = shader_stage;
+  shader_pipeline_info.pName  = name.c_str();
+  return shader_pipeline_info;
+}
+
 int main() {
   glfwInit();
 
