@@ -242,6 +242,243 @@ create_shader_pipeline_info(const vk::ShaderModule& module,
   return shader_pipeline_info;
 }
 
+// TODO clean this up I stole it from one of my old repos
+vk::RenderPass create_render_pass(const vk::Device& logical_device) {
+  static vk::AttachmentDescription colorAttachmentDescription{};
+  colorAttachmentDescription.format         = vk::Format::eB8G8R8A8Srgb;
+  colorAttachmentDescription.samples        = vk::SampleCountFlagBits::e1;
+  colorAttachmentDescription.loadOp         = vk::AttachmentLoadOp::eClear;
+  colorAttachmentDescription.storeOp        = vk::AttachmentStoreOp::eStore;
+  colorAttachmentDescription.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
+  colorAttachmentDescription.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+  colorAttachmentDescription.initialLayout  = vk::ImageLayout::eUndefined;
+  colorAttachmentDescription.finalLayout    = vk::ImageLayout::ePresentSrcKHR;
+  static vk::AttachmentReference colorAttachmentReference;
+  colorAttachmentReference.attachment = 0;
+  colorAttachmentReference.layout = vk::ImageLayout::eColorAttachmentOptimal;
+  //
+  // Subpass creation
+  static vk::SubpassDescription basicSubpass;
+  basicSubpass.pipelineBindPoint    = vk::PipelineBindPoint::eGraphics;
+  basicSubpass.colorAttachmentCount = 1;
+  basicSubpass.pColorAttachments    = &colorAttachmentReference;
+  //
+  //
+  // Render pass creation
+  static vk::RenderPassCreateInfo renderPassInfo;
+  renderPassInfo.attachmentCount = 1;
+  renderPassInfo.pAttachments    = &colorAttachmentDescription;
+  renderPassInfo.subpassCount    = 1;
+  renderPassInfo.pSubpasses      = &basicSubpass;
+  static vk::SubpassDependency subpassDependency;
+  subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+  subpassDependency.dstSubpass = 0;
+  subpassDependency.srcStageMask =
+      vk::PipelineStageFlagBits::eColorAttachmentOutput;
+  subpassDependency.srcAccessMask = vk::AccessFlagBits::eNoneKHR;
+  subpassDependency.dstStageMask =
+      vk::PipelineStageFlagBits::eColorAttachmentOutput;
+  subpassDependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+  renderPassInfo.dependencyCount  = 1;
+  renderPassInfo.pDependencies    = &subpassDependency;
+  return logical_device.createRenderPass(renderPassInfo);
+  //
+}
+
+vk::PipelineLayout
+create_fixed_function_pipeline(const vk::Device& logical_device) {
+  static vk::PipelineLayoutCreateInfo data{};
+  return logical_device.createPipelineLayout(data);
+}
+
+void setup_render_pass(const vk::RenderPass& render_pass,
+                       const vk::Pipeline& graphics_pipeline,
+                       const vk::Framebuffer& frame_buffer,
+                       const vk::CommandBuffer& command_buffer) {
+  vk::CommandBufferBeginInfo commandBufferBeginInfo;
+  command_buffer.begin(commandBufferBeginInfo);
+  vk::RenderPassBeginInfo renderPassBeginInfo;
+  renderPassBeginInfo.renderPass        = render_pass;
+  renderPassBeginInfo.framebuffer       = frame_buffer;
+  renderPassBeginInfo.renderArea.offset = vk::Offset2D{0, 0};
+  renderPassBeginInfo.renderArea.extent = vk::Extent2D{1024, 1024};
+  vk::ClearValue clearColor{std::array{0.0f, 0.0f, 0.0f, 1.0f}};  // black
+  renderPassBeginInfo.clearValueCount = 1;
+  renderPassBeginInfo.pClearValues    = &clearColor;
+  // Begin recording
+  command_buffer.beginRenderPass(&renderPassBeginInfo,
+                                 vk::SubpassContents::eInline);
+  command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics,
+                              graphics_pipeline);
+  command_buffer.draw(3, 1, 0, 0);
+  command_buffer.endRenderPass();
+  command_buffer.end();
+}
+
+std::vector<vk::CommandBuffer> create_command_buffers(
+    const vk::Device& logical_device,
+    const std::vector<vk::Framebuffer>& frame_buffers,
+    const std::function<void(const vk::Framebuffer&, const vk::CommandBuffer&)>&
+        command_buffer_setup) {
+  // Setup command buffers.
+  vk::CommandPoolCreateInfo commandPoolInfo;
+  commandPoolInfo.queueFamilyIndex = 0;
+  vk::CommandPool commandPool{
+      logical_device.createCommandPool(commandPoolInfo)};
+  vk::CommandBufferAllocateInfo commandBufferAllocateInfo;
+  commandBufferAllocateInfo.commandPool = commandPool;
+  commandBufferAllocateInfo.level       = vk::CommandBufferLevel::ePrimary;
+  commandBufferAllocateInfo.commandBufferCount =
+      static_cast<uint32_t>(frame_buffers.size());
+  std::vector<vk::CommandBuffer> commandBuffers{
+      logical_device.allocateCommandBuffers(commandBufferAllocateInfo)};
+  for (const auto&& [frame_buffer, command_buffer] :
+       std::ranges::views::zip(frame_buffers, commandBuffers)) {
+    command_buffer_setup(frame_buffer, command_buffer);
+  }
+  return commandBuffers;
+}
+
+void draw_frame(const vk::Device& logical_device,
+                const vk::SwapchainKHR& swapchain,
+                const std::vector<vk::CommandBuffer>& command_buffers) {
+  vk::SemaphoreCreateInfo imageIsAvailableInfo;
+  vk::SemaphoreCreateInfo renderingFinishedInfo;
+  vk::Semaphore imageIsAvailable{
+      logical_device.createSemaphore(imageIsAvailableInfo)};
+  vk::Semaphore renderingFinished{
+      logical_device.createSemaphore(renderingFinishedInfo)};
+  auto imageIndex = logical_device
+                        .acquireNextImageKHR(swapchain, UINT64_MAX,
+                                             imageIsAvailable, VK_NULL_HANDLE)
+                        .value;
+  vk::SubmitInfo submitInfo;
+  std::array<vk::PipelineStageFlags, 1> waitStages{
+      vk::PipelineStageFlagBits::eColorAttachmentOutput};
+  std::array waitSemaphore        = {imageIsAvailable};
+  submitInfo.waitSemaphoreCount   = 1;
+  submitInfo.pWaitSemaphores      = waitSemaphore.data();
+  submitInfo.pWaitDstStageMask    = waitStages.data();
+  submitInfo.pCommandBuffers      = &command_buffers[imageIndex];
+  submitInfo.commandBufferCount   = 1;
+  submitInfo.signalSemaphoreCount = 1;
+  std::array signalSemaphore      = {renderingFinished};
+  submitInfo.pSignalSemaphores    = signalSemaphore.data();
+  vk::Queue queue                 = logical_device.getQueue(0, 0);
+  if (vk::Result::eSuccess !=
+      queue.submit(1, &submitInfo,
+                   VK_NULL_HANDLE)) {  // submit draw work to queue
+    // TODO blow up
+  };
+  vk::PresentInfoKHR presentInfo;
+  presentInfo.waitSemaphoreCount = 1;
+  presentInfo.pWaitSemaphores    = signalSemaphore.data();
+  presentInfo.swapchainCount     = 1;
+  presentInfo.pSwapchains        = &swapchain;
+  presentInfo.pImageIndices      = &imageIndex;
+  if (vk::Result::eSuccess !=
+      queue.presentKHR(&presentInfo)) {  // present queue
+    // TODO blow up
+  }
+}
+
+std::vector<vk::Framebuffer>
+create_framebuffers(const vk::Device& logical_device,
+                    const vk::RenderPass& render_pass,
+                    const std::vector<vk::ImageView>& image_views) {
+  // Create framebuffers
+  std::vector<vk::Framebuffer> frameBuffers{image_views.size()};
+  std::ranges::transform(
+      image_views, frameBuffers.begin(),
+      [&render_pass, &logical_device](const vk::ImageView& imageView) {
+        std::array<vk::ImageView, 1> imageViewAttachment{imageView};
+        vk::FramebufferCreateInfo frameBufferInfo{};
+        frameBufferInfo.renderPass      = render_pass;
+        frameBufferInfo.attachmentCount = 1;
+        frameBufferInfo.pAttachments    = imageViewAttachment.data();
+        frameBufferInfo.width           = 1024;
+        frameBufferInfo.height          = 1024;
+        frameBufferInfo.layers          = 1;
+        return logical_device.createFramebuffer(frameBufferInfo);
+      });
+  return frameBuffers;
+}
+
+vk::Pipeline
+create_graphics_pipeline(const vk::Device& logical_device,
+                         const vk::RenderPass& render_pass,
+                         const std::vector<vk::PipelineShaderStageCreateInfo>&
+                             pipeline_shader_info) {
+  // Setup vertex input
+  static vk::PipelineVertexInputStateCreateInfo vertexInputInfo;
+  vertexInputInfo.vertexBindingDescriptionCount   = 0;
+  vertexInputInfo.vertexAttributeDescriptionCount = 0;
+  //
+  // Setup input assembly
+  static vk::PipelineInputAssemblyStateCreateInfo inputAssemblyInfo;
+  inputAssemblyInfo.topology = vk::PrimitiveTopology::eTriangleList;
+  inputAssemblyInfo.primitiveRestartEnable = false;
+  // Setup viewport
+  static vk::Viewport viewport;
+  viewport.x        = 0.0f;
+  viewport.y        = 0.0f;
+  viewport.width    = static_cast<float>(1024);
+  viewport.height   = static_cast<float>(1024);
+  viewport.minDepth = 0.0f;
+  viewport.maxDepth = 1.0f;
+  static vk::Rect2D scissor;
+  scissor.offset = vk::Offset2D{0, 0};
+  scissor.extent = vk::Extent2D{1024, 1024};
+  static vk::PipelineViewportStateCreateInfo viewPortStateInfo;
+  viewPortStateInfo.viewportCount = 1;
+  viewPortStateInfo.pViewports    = &viewport;
+  viewPortStateInfo.scissorCount  = 1;
+  viewPortStateInfo.pScissors     = &scissor;
+  // Setup rasterizer
+  static vk::PipelineRasterizationStateCreateInfo rasterizerInfo;
+  rasterizerInfo.depthClampEnable        = false;
+  rasterizerInfo.rasterizerDiscardEnable = false;
+  rasterizerInfo.polygonMode             = vk::PolygonMode::eFill;
+  rasterizerInfo.lineWidth               = 1.0f;
+  rasterizerInfo.cullMode                = vk::CullModeFlagBits::eBack;
+  rasterizerInfo.frontFace               = vk::FrontFace::eClockwise;
+  rasterizerInfo.depthBiasEnable         = false;
+  //
+  // Setup multisample
+
+  static vk::PipelineMultisampleStateCreateInfo multisamplingInfo;
+  multisamplingInfo.sampleShadingEnable  = false;
+  multisamplingInfo.rasterizationSamples = vk::SampleCountFlagBits::e1;
+  //
+  //
+  // Setup color blending for framebuffers.
+  static vk::PipelineColorBlendAttachmentState colorBlendAttachmentState;
+  colorBlendAttachmentState.colorWriteMask =
+      vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eB |
+      vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eA;
+  colorBlendAttachmentState.blendEnable = false;
+  static vk::PipelineColorBlendStateCreateInfo colorBlendStateInfo{};
+  colorBlendStateInfo.logicOpEnable   = false;
+  colorBlendStateInfo.attachmentCount = 1;
+  colorBlendStateInfo.pAttachments    = &colorBlendAttachmentState;
+  // Actually instantiate the pipeline
+  static vk::GraphicsPipelineCreateInfo graphicsPipelineInfo{};
+  graphicsPipelineInfo.stageCount          = pipeline_shader_info.size();
+  graphicsPipelineInfo.pStages             = pipeline_shader_info.data();
+  graphicsPipelineInfo.pVertexInputState   = &vertexInputInfo;
+  graphicsPipelineInfo.pInputAssemblyState = &inputAssemblyInfo;
+  graphicsPipelineInfo.pViewportState      = &viewPortStateInfo;
+  graphicsPipelineInfo.pRasterizationState = &rasterizerInfo;
+  graphicsPipelineInfo.pMultisampleState   = &multisamplingInfo;
+  graphicsPipelineInfo.pColorBlendState    = &colorBlendStateInfo;
+  graphicsPipelineInfo.layout = create_fixed_function_pipeline(logical_device);
+  graphicsPipelineInfo.renderPass = render_pass;
+  graphicsPipelineInfo.subpass    = 0;
+  return logical_device
+      .createGraphicsPipeline(VK_NULL_HANDLE, graphicsPipelineInfo)
+      .value;
+}
+
 int main() {
   glfwInit();
 
