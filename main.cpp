@@ -93,7 +93,8 @@ create_logical_device_info(const vk::DeviceQueueCreateInfo& queue_info) {
   auto device_info                 = vk::DeviceCreateInfo{};
   device_info.queueCreateInfoCount = 1;
   device_info.pQueueCreateInfos    = &queue_info;
-  static auto extensions = std::vector<char*>{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+  static auto extensions =
+      std::array<char*, 1>{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
   device_info.ppEnabledExtensionNames = extensions.data();
   device_info.enabledExtensionCount   = 1;
   return device_info;
