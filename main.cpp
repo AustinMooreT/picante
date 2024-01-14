@@ -5,6 +5,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <ranges>
 
 #define VK_USE_PLATFORM_WAYLAND_KHR
 #define GLFW_INCLUDE_VULKAN
@@ -498,10 +499,41 @@ int main() {
       logical_device.value().get().getSwapchainImagesKHR(swapchain);
   const auto image_views =
       create_image_views(logical_device.value().get(), images);
+  const auto render_pass = create_render_pass(logical_device.value().get());
+  const auto vertex_shader_str =
+      "/home/maurice/picante_2/build/picante.vert.bin";
+  const auto fragment_shader_str =
+      "/home/maurice/picante_2/build/picante.frag.bin";
+  const auto dummy_vertex_shader =
+      load_shader_module(logical_device.value().get(), vertex_shader_str);
+  const auto dummy_fragment_shader =
+      load_shader_module(logical_device.value().get(), fragment_shader_str);
+  static const auto shader_entry_point = std::string{"main"};
+  const auto dummy_vertex_shader_info  = create_shader_pipeline_info(
+      dummy_vertex_shader.value(), vk::ShaderStageFlagBits::eVertex,
+      shader_entry_point);
+  const auto dummy_fragment_shader_info = create_shader_pipeline_info(
+      dummy_fragment_shader.value(), vk::ShaderStageFlagBits::eFragment,
+      shader_entry_point);
+  const auto shaders =
+      std::vector{dummy_vertex_shader_info, dummy_fragment_shader_info};
+  const auto graphics_pipeline = create_graphics_pipeline(
+      logical_device.value().get(), render_pass, shaders);
+  const auto frame_buffers = create_framebuffers(logical_device.value().get(),
+                                                 render_pass, image_views);
+  auto command_buffers =
+      create_command_buffers(logical_device.value().get(), frame_buffers,
+                             [&render_pass, &graphics_pipeline](
+                                 const vk::Framebuffer& frame_buffer,
+                                 const vk::CommandBuffer& command_buffer) {
+                               setup_render_pass(render_pass, graphics_pipeline,
+                                                 frame_buffer, command_buffer);
+                             });
 
   glfwShowWindow(window.get());
   while (!glfwWindowShouldClose(window.get())) {
-    // main loop do stuff
+    draw_frame(logical_device.value().get(), swapchain, command_buffers);
+    //  main loop do stuff
     glfwPollEvents();
   }
 
