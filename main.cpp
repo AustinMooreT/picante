@@ -22,17 +22,25 @@ constexpr vk::ApplicationInfo create_application_info() {
 };
 
 vk::UniqueInstance create_instance() {
+  uint32_t glfw_extension_count = 0;
+  const char** glfw_extensions{nullptr};
+  glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
+  std::vector<const char*> extensions(glfw_extensions,
+                                      glfw_extensions + glfw_extension_count);
+  extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+  const std::vector<const char*> validation_layers = {
+      "VK_LAYER_KHRONOS_validation"};
   const auto application_info = create_application_info();
-  const auto instance_info    = std::invoke([&application_info] {
-    auto instance_info              = vk::InstanceCreateInfo{};
-    instance_info.pApplicationInfo  = &application_info;
-    instance_info.enabledLayerCount = 0;
-    // TODO I think I need certain layers for present and stuff
-    instance_info.ppEnabledLayerNames = nullptr;
-    instance_info.ppEnabledExtensionNames =
-        glfwGetRequiredInstanceExtensions(&instance_info.enabledExtensionCount);
-    return instance_info;
-  });
+  const auto instance_info =
+      std::invoke([&application_info, &extensions, &validation_layers] {
+        auto instance_info                    = vk::InstanceCreateInfo{};
+        instance_info.pApplicationInfo        = &application_info;
+        instance_info.enabledLayerCount       = validation_layers.size();
+        instance_info.ppEnabledLayerNames     = validation_layers.data();
+        instance_info.enabledExtensionCount   = extensions.size();
+        instance_info.ppEnabledExtensionNames = extensions.data();
+        return instance_info;
+      });
   return vk::createInstanceUnique(instance_info);
 }
 
